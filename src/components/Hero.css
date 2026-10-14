@@ -1,0 +1,39 @@
+.hero {
+  position: relative;
+  width: 100%;
+}
+
+.hero-image {
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  max-height: calc(100vh - 70px);
+  object-fit: cover;
+}
+
+.hero-cta {
+  position: absolute;
+  left: 50%;
+  bottom: clamp(2rem, 8vh, 5rem);
+  transform: translateX(-50%);
+  padding: 1rem 2.75rem;
+  font-size: 0.8125rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--white);
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--white);
+  backdrop-filter: blur(6px);
+  transition: background 0.2s, color 0.2s;
+}
+
+.hero-cta:hover {
+  color: var(--black);
+  background: var(--white);
+}
+
+@media (max-width: 600px) {
+  .hero-image {
+    aspect-ratio: 4 / 3;
+  }
+}
