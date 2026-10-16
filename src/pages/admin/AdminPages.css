@@ -1,0 +1,266 @@
+/* Shared by the admin pages: header, tables, status labels, messages */
+.admin-page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.admin-page-header h1 {
+  font-size: 1.5rem;
+  letter-spacing: -0.01em;
+}
+
+.admin-page-header p {
+  font-size: 0.8125rem;
+  color: var(--gray);
+}
+
+.admin-message {
+  padding: 3rem 1rem;
+  font-size: 0.875rem;
+  text-align: center;
+  color: var(--gray);
+  background: var(--white);
+  border: 1px solid var(--border);
+}
+
+.admin-alert {
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  color: #a00;
+  background: #fff5f5;
+  border: 1px solid #f0c6c6;
+}
+
+/* Tables scroll sideways on small screens instead of squashing */
+.admin-table-wrap {
+  overflow-x: auto;
+  background: var(--white);
+  border: 1px solid var(--border);
+}
+
+.admin-table {
+  width: 100%;
+  font-size: 0.875rem;
+  border-collapse: collapse;
+}
+
+.admin-table th,
+.admin-table td {
+  padding: 0.875rem 1rem;
+  text-align: left;
+  vertical-align: top;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--border);
+}
+
+.admin-table th {
+  font-size: 0.6875rem;
+  font-weight: 400;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--gray);
+  background: #fafafa;
+}
+
+.admin-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.admin-table .is-number {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-table .is-wrap {
+  min-width: 14rem;
+  white-space: normal;
+}
+
+.admin-table small {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  color: var(--gray);
+}
+
+.admin-product-image {
+  width: 40px;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  background: #f2f2f2;
+}
+
+/* Status labels: stock levels and order states */
+.admin-status {
+  display: inline-block;
+  padding: 0.125rem 0.5rem;
+  font-size: 0.6875rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: 1px solid currentColor;
+}
+
+.admin-status--ok {
+  color: #1a7f37;
+}
+
+.admin-status--warn {
+  color: #9a6700;
+}
+
+.admin-status--bad {
+  color: #c00;
+}
+
+.admin-status--muted {
+  color: var(--gray);
+}
+
+.admin-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.admin-button {
+  padding: 0.5rem 0.875rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--white);
+  background: var(--black);
+  border: 1px solid var(--black);
+}
+
+.admin-button:hover:not(:disabled) {
+  color: var(--black);
+  background: var(--white);
+}
+
+.admin-button--secondary {
+  color: var(--black);
+  background: var(--white);
+}
+
+.admin-button--secondary:hover:not(:disabled) {
+  color: var(--white);
+  background: var(--black);
+}
+
+.admin-button:disabled {
+  cursor: wait;
+  opacity: 0.5;
+}
+
+.admin-status--info {
+  color: #0969da;
+}
+
+.admin-page-header-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+a.admin-button {
+  display: inline-block;
+}
+
+.admin-back {
+  display: inline-block;
+  margin-bottom: 1rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--gray);
+}
+
+.admin-back:hover {
+  color: var(--black);
+}
+
+/* Filter tabs above a table */
+.admin-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.admin-tabs a {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  background: var(--white);
+  border: 1px solid var(--border);
+}
+
+.admin-tabs a:hover {
+  border-color: var(--black);
+}
+
+.admin-tabs a.is-active {
+  color: var(--white);
+  background: var(--black);
+  border-color: var(--black);
+}
+
+.admin-tabs span {
+  margin-left: 0.375rem;
+  opacity: 0.6;
+}
+
+/* Rows that open a detail page */
+.admin-table tr.is-clickable {
+  cursor: pointer;
+}
+
+.admin-table tr.is-clickable:hover td {
+  background: #fafafa;
+}
+
+.admin-table td a.admin-row-link {
+  font-weight: 700;
+}
+
+.admin-table td a.admin-row-link:hover,
+.admin-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.admin-link {
+  font-size: 0.8125rem;
+}
+
+.admin-link--danger {
+  padding: 0;
+  font-size: 0.8125rem;
+  color: #c00;
+  background: none;
+  border: none;
+}
+
+.admin-link--danger:hover:not(:disabled) {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* White boxes used on the dashboard and order details */
+.admin-card {
+  padding: 1.25rem;
+  background: var(--white);
+  border: 1px solid var(--border);
+}
+
+.admin-card h2 {
+  margin-bottom: 1rem;
+  font-size: 0.6875rem;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gray);
+}

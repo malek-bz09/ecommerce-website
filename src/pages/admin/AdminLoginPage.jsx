@@ -8,18 +8,23 @@ function AdminLoginPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
   const destination = location.state?.from ?? '/admin'
 
   if (user) return <Navigate to={destination} replace />
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault()
     const form = new FormData(event.currentTarget)
-    if (login(form.get('username'), form.get('password'))) {
+    setSubmitting(true)
+    setError('')
+    try {
+      await login(form.get('username'), form.get('password'))
       navigate(destination, { replace: true })
-    } else {
-      setError('Incorrect username or password.')
+    } catch (err) {
+      setError(err.message)
+      setSubmitting(false)
     }
   }
 
@@ -46,7 +51,9 @@ function AdminLoginPage() {
           </p>
         )}
 
-        <button type="submit">Sign in</button>
+        <button type="submit" disabled={submitting}>
+          {submitting ? 'Signing in…' : 'Sign in'}
+        </button>
       </form>
     </section>
   )

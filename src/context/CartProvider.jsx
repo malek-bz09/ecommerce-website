@@ -1,6 +1,6 @@
 import { useEffect, useReducer } from 'react'
 import { CartContext } from './cart'
-import { products } from '../data/products'
+import { useProducts } from './products'
 
 const STORAGE_KEY = 'cart'
 
@@ -42,6 +42,7 @@ function loadCart() {
 
 function CartProvider({ children }) {
   const [items, dispatch] = useReducer(cartReducer, undefined, loadCart)
+  const { products } = useProducts()
 
   useEffect(() => {
     try {

@@ -2,22 +2,28 @@ import { useState } from 'react'
 import { Link, useParams } from 'react-router'
 import ProductGrid from '../components/ProductGrid'
 import NotFoundPage from './NotFoundPage'
-import { categories, getProductBySlug, getProductsByCategory } from '../data/products'
+import CatalogMessage from '../components/CatalogMessage'
+import { categories } from '../data/products'
+import { useProducts } from '../context/products'
 import { useCart } from '../context/cart'
 import { formatPrice } from '../utils/formatPrice'
 import './ProductPage.css'
 
 function ProductPage() {
   const { slug } = useParams()
-  const product = getProductBySlug(slug)
+  const { products, loading, error } = useProducts()
+  const product = products.find((p) => p.slug === slug)
 
+  if (!product && (loading || error)) return <CatalogMessage error={error} />
   if (!product) return <NotFoundPage />
 
+  const related = products.filter((p) => p.category === product.category && p.id !== product.id)
+
   // key resets the selected image and quantity when moving to another product
-  return <ProductDetails key={product.id} product={product} />
+  return <ProductDetails key={product.id} product={product} related={related} />
 }
 
-function ProductDetails({ product }) {
+function ProductDetails({ product, related }) {
   const { name, description, price, compareAtPrice, images, rating, reviewCount, stock } = product
   const [selectedImage, setSelectedImage] = useState(0)
   const [quantity, setQuantity] = useState(1)
@@ -25,7 +31,6 @@ function ProductDetails({ product }) {
   const { addItem } = useCart()
 
   const category = categories.find((c) => c.id === product.category)
-  const related = getProductsByCategory(product.category).filter((p) => p.id !== product.id)
   const soldOut = stock === 0
   const onSale = compareAtPrice !== null
 
@@ -75,9 +80,11 @@ function ProductDetails({ product }) {
               {formatPrice(price)}
             </p>
 
-            <p className="product-rating">
-              ★ {rating.toFixed(1)} <span>({reviewCount} reviews)</span>
-            </p>
+            {reviewCount > 0 && (
+              <p className="product-rating">
+                ★ {rating.toFixed(1)} <span>({reviewCount} reviews)</span>
+              </p>
+            )}
 
             <p className="product-description">{description}</p>
 

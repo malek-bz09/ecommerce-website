@@ -1,10 +1,15 @@
 import { Link } from 'react-router'
+import CatalogMessage from '../components/CatalogMessage'
 import { useCart } from '../context/cart'
+import { useProducts } from '../context/products'
 import { formatPrice } from '../utils/formatPrice'
 import './CartPage.css'
 
 function CartPage() {
   const { lines, count, subtotal, updateQuantity, removeItem, clearCart } = useCart()
+  const { loading, error } = useProducts()
+
+  if (loading || error) return <CatalogMessage error={error} />
 
   if (lines.length === 0) {
     return (

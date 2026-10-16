@@ -1,12 +1,19 @@
 import Hero from '../components/Hero'
 import ProductGrid from '../components/ProductGrid'
-import { products } from '../data/products'
+import CatalogMessage from '../components/CatalogMessage'
+import { useProducts } from '../context/products'
 
 function HomePage() {
+  const { products, loading, error } = useProducts()
+
   return (
     <>
       <Hero />
-      <ProductGrid title="All products" products={products} />
+      {loading || error ? (
+        <CatalogMessage error={error} />
+      ) : (
+        <ProductGrid title="All products" products={products} />
+      )}
     </>
   )
 }

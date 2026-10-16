@@ -62,3 +62,8 @@
   color: var(--black);
   background: var(--white);
 }
+
+.admin-login-form button:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}

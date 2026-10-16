@@ -1,0 +1,296 @@
+.dashboard {
+  display: grid;
+  gap: 1rem;
+}
+
+.dashboard .admin-page-header {
+  margin-bottom: 0.5rem;
+}
+
+/* Stat tiles */
+.dashboard-tiles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr)); /* 6 tiles → two even rows */
+  gap: 1rem;
+}
+
+@media (max-width: 700px) {
+  .dashboard-tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .stat-tile {
+    padding: 1rem;
+  }
+
+  .stat-value {
+    font-size: 1.125rem;
+  }
+
+  /* Recent orders: id and customer on one line, total and status below */
+  .dashboard-order {
+    flex-wrap: wrap;
+  }
+
+  .dashboard-order .dashboard-list-main {
+    flex-basis: 100%;
+  }
+}
+
+.stat-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  padding: 1.25rem;
+  background: var(--white);
+  border: 1px solid var(--border);
+}
+
+.stat-tile.is-link:hover {
+  border-color: var(--black);
+}
+
+.stat-label {
+  font-size: 0.6875rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gray);
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-note {
+  font-size: 0.75rem;
+  color: var(--gray);
+}
+
+.dashboard-row {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.dashboard-stack {
+  display: grid;
+  gap: 1rem;
+}
+
+.dashboard-empty {
+  font-size: 0.875rem;
+  color: var(--gray);
+}
+
+/* Orders by status */
+.dashboard-status {
+  display: grid;
+  gap: 0.875rem;
+}
+
+.dashboard-status a {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dashboard-status a:hover .dashboard-status-count {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.dashboard-status-count {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.dashboard-share {
+  display: block;
+  height: 4px;
+  margin-top: 0.375rem;
+  background: #f0f0f0;
+  border-radius: 2px;
+}
+
+.dashboard-share span {
+  display: block;
+  height: 100%;
+  background: #999;
+  border-radius: 2px;
+}
+
+/* Lists: recent orders, low stock, best sellers */
+.dashboard-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dashboard-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 0.625rem 0;
+  font-size: 0.875rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.dashboard-list li:first-child {
+  padding-top: 0;
+}
+
+.dashboard-list li:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.dashboard-list img {
+  flex-shrink: 0;
+  width: 32px;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  background: #f2f2f2;
+}
+
+.dashboard-list-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.dashboard-list-main small {
+  display: block;
+  margin-top: 0.125rem;
+  font-size: 0.75rem;
+  color: var(--gray);
+}
+
+.dashboard-list-value {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Bar chart */
+.chart-plot {
+  position: relative;
+  height: 220px;
+  margin-left: 2rem; /* room for the axis numbers */
+}
+
+.chart-grid {
+  position: absolute;
+  right: 0;
+  left: 0;
+  border-top: 1px solid #eee;
+}
+
+.chart-grid span {
+  position: absolute;
+  right: calc(100% + 0.5rem);
+  font-size: 0.6875rem;
+  line-height: 1;
+  color: var(--gray);
+  transform: translateY(-50%);
+  font-variant-numeric: tabular-nums;
+}
+
+.chart-columns,
+.chart-labels {
+  display: grid;
+  grid-template-columns: repeat(14, minmax(0, 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chart-columns {
+  position: absolute;
+  inset: 0;
+}
+
+/* The whole column is the hover target, wider than the bar itself */
+.chart-column {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  height: 100%;
+  outline: none;
+  cursor: default;
+}
+
+.chart-bar {
+  width: min(24px, 70%);
+  background: var(--black);
+  border-radius: 4px 4px 0 0; /* rounded data end, square on the baseline */
+}
+
+.chart-column:hover,
+.chart-column:focus-visible {
+  background: rgb(0 0 0 / 0.04);
+}
+
+.chart-tooltip {
+  position: absolute;
+  bottom: calc(100% + 0.5rem);
+  left: 50%;
+  z-index: 1;
+  padding: 0.375rem 0.625rem;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  color: var(--white);
+  background: var(--black);
+  transform: translateX(-50%);
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* Keep the first and last tooltips inside the card */
+.chart-column:first-child .chart-tooltip {
+  left: 0;
+  transform: none;
+}
+
+.chart-column:last-child .chart-tooltip {
+  right: 0;
+  left: auto;
+  transform: none;
+}
+
+.chart-column:hover .chart-tooltip,
+.chart-column:focus-visible .chart-tooltip {
+  visibility: visible;
+}
+
+.chart-labels {
+  margin-left: 2rem;
+  padding-top: 0.5rem;
+  font-size: 0.6875rem;
+  text-align: center;
+  white-space: nowrap;
+  color: var(--gray);
+}
+
+.chart-table {
+  margin-top: 1rem;
+  font-size: 0.8125rem;
+}
+
+.chart-table summary {
+  color: var(--gray);
+  cursor: pointer;
+}
+
+.chart-table table {
+  margin-top: 0.75rem;
+  border: 1px solid var(--border);
+}
+
+@media (max-width: 1100px) {
+  .dashboard-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

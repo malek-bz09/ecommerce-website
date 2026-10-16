@@ -1,0 +1,10 @@
+[project]
+name = "underground-backend"
+version = "0.1.0"
+description = "API for the UNDERGROUND store: orders, stock, customers and admin login"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115",
+    "python-multipart>=0.0.32",
+    "uvicorn>=0.32",
+]

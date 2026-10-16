@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router'
+import CatalogMessage from '../components/CatalogMessage'
 import { useCart } from '../context/cart'
+import { useProducts } from '../context/products'
 import { wilayas } from '../data/wilayas'
 import { DELIVERY_FEE, OrderError, placeOrder } from '../services/orders'
 import { formatPrice } from '../utils/formatPrice'
@@ -12,6 +14,7 @@ const EMPTY_FORM = Object.fromEntries(FIELDS.map((field) => [field, '']))
 
 function CheckoutPage() {
   const { lines, subtotal, clearCart } = useCart()
+  const catalog = useProducts()
   const navigate = useNavigate()
 
   const [values, setValues] = useState(EMPTY_FORM)
@@ -22,6 +25,8 @@ function CheckoutPage() {
 
   // Items that can't be ordered as they are (sold out or over the stock limit)
   const stockIssues = lines.filter(({ quantity, product }) => quantity > product.stock)
+
+  if (catalog.loading || catalog.error) return <CatalogMessage error={catalog.error} />
 
   if (lines.length === 0) {
     return (

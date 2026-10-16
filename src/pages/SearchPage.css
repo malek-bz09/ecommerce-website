@@ -1,0 +1,33 @@
+.search-empty {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: clamp(4rem, 12vw, 8rem) var(--gutter);
+  text-align: center;
+}
+
+.search-empty h1 {
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  letter-spacing: -0.02em;
+}
+
+.search-empty p {
+  margin-top: 1rem;
+  color: var(--gray);
+}
+
+.search-empty-link {
+  display: inline-block;
+  margin-top: 2.5rem;
+  padding: 1rem 2.25rem;
+  font-size: 0.8125rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--white);
+  background: var(--black);
+  border: 1px solid var(--black);
+}
+
+.search-empty-link:hover {
+  color: var(--black);
+  background: var(--white);
+}

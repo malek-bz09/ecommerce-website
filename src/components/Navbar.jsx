@@ -1,10 +1,19 @@
-import { Link } from 'react-router'
+import { Link, useNavigate, useSearchParams } from 'react-router'
 import './Navbar.css'
 import { categories } from '../data/products'
 import { useCart } from '../context/cart'
 
 function Navbar() {
   const { count } = useCart()
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const query = searchParams.get('q') ?? ''
+
+  const handleSearch = (event) => {
+    event.preventDefault()
+    const q = new FormData(event.currentTarget).get('q').trim()
+    if (q) navigate(`/search?q=${encodeURIComponent(q)}`)
+  }
 
   return (
     <header className="navbar">
@@ -23,8 +32,16 @@ function Navbar() {
       </nav>
 
       <div className="navbar-actions">
-        <form className="navbar-search" role="search">
-          <input type="search" name="q" placeholder="Search products" aria-label="Search products" />
+        <form className="navbar-search" role="search" onSubmit={handleSearch}>
+          {/* key: when the URL's query changes (e.g. Back button), show the new one */}
+          <input
+            key={query}
+            type="search"
+            name="q"
+            defaultValue={query}
+            placeholder="Search products"
+            aria-label="Search products"
+          />
           <button type="submit">Search</button>
         </form>
         <Link to="/cart">Cart ({count})</Link>

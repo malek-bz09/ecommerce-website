@@ -1,0 +1,8 @@
+.catalog-message {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: clamp(4rem, 12vw, 8rem) var(--gutter);
+  font-size: 0.875rem;
+  text-align: center;
+  color: var(--gray);
+}
