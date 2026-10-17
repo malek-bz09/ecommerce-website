@@ -2,7 +2,7 @@
 
 import re
 import secrets
-import sqlite3
+import psycopg
 import unicodedata
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
@@ -33,7 +33,7 @@ def to_json(row) -> dict:
 
 
 @router.get("/products")
-def list_products(db: sqlite3.Connection = Depends(get_db)):
+def list_products(db: psycopg.Connection = Depends(get_db)):
     rows = db.execute("SELECT * FROM products WHERE deleted = 0 ORDER BY id")
     return [to_json(row) for row in rows]
 
@@ -82,52 +82,52 @@ def make_slug(db, name: str) -> str:
     ascii_name = unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode()
     base = re.sub(r"[^a-z0-9]+", "-", ascii_name.lower().replace("'", "")).strip("-") or "product"
     slug, n = base, 2
-    while db.execute("SELECT 1 FROM products WHERE slug = ?", (slug,)).fetchone():
+    while db.execute("SELECT 1 FROM products WHERE slug = %s", (slug,)).fetchone():
         slug, n = f"{base}-{n}", n + 1
     return slug
 
 
 def get_product(db, product_id: int):
-    row = db.execute("SELECT * FROM products WHERE id = ? AND deleted = 0", (product_id,)).fetchone()
+    row = db.execute("SELECT * FROM products WHERE id = %s AND deleted = 0", (product_id,)).fetchone()
     if not row:
         raise HTTPException(404, detail={"message": "Product not found."})
     return row
 
 
 @admin_router.get("/products")
-def admin_list_products(db: sqlite3.Connection = Depends(get_db)):
+def admin_list_products(db: psycopg.Connection = Depends(get_db)):
     rows = db.execute("SELECT * FROM products WHERE deleted = 0 ORDER BY id DESC")
     return [to_json(row) for row in rows]
 
 
 @admin_router.get("/products/{product_id}")
-def admin_get_product(product_id: int, db: sqlite3.Connection = Depends(get_db)):
+def admin_get_product(product_id: int, db: psycopg.Connection = Depends(get_db)):
     return to_json(get_product(db, product_id))
 
 
 @admin_router.post("/products", status_code=201)
-def create_product(p: ProductIn, db: sqlite3.Connection = Depends(get_db)):
+def create_product(p: ProductIn, db: psycopg.Connection = Depends(get_db)):
     check(p)
-    with db:
-        cursor = db.execute(
+    with db.transaction():
+        product_id = db.execute(
             """INSERT INTO products (slug, name, description, category, price, compare_at_price, stock, image)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+               VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id""",
             (make_slug(db, p.name), p.name.strip(), p.description.strip(), p.category,
              p.price, p.compareAtPrice, p.stock, p.image),
-        )
-    return to_json(get_product(db, cursor.lastrowid))
+        ).fetchone()["id"]
+    return to_json(get_product(db, product_id))
 
 
 @admin_router.put("/products/{product_id}")
-def update_product(product_id: int, p: ProductIn, db: sqlite3.Connection = Depends(get_db)):
+def update_product(product_id: int, p: ProductIn, db: psycopg.Connection = Depends(get_db)):
     get_product(db, product_id)
     check(p)
     # The slug (the product's web address) stays the same so shared links keep working
-    with db:
+    with db.transaction():
         db.execute(
-            """UPDATE products SET name = ?, description = ?, category = ?, price = ?,
-                                   compare_at_price = ?, stock = ?, image = ?
-               WHERE id = ?""",
+            """UPDATE products SET name = %s, description = %s, category = %s, price = %s,
+                                   compare_at_price = %s, stock = %s, image = %s
+               WHERE id = %s""",
             (p.name.strip(), p.description.strip(), p.category, p.price,
              p.compareAtPrice, p.stock, p.image, product_id),
         )
@@ -135,11 +135,11 @@ def update_product(product_id: int, p: ProductIn, db: sqlite3.Connection = Depen
 
 
 @admin_router.delete("/products/{product_id}", status_code=204)
-def delete_product(product_id: int, db: sqlite3.Connection = Depends(get_db)):
+def delete_product(product_id: int, db: psycopg.Connection = Depends(get_db)):
     get_product(db, product_id)
     # "Soft delete": hidden everywhere, but the row stays so past orders still make sense
-    with db:
-        db.execute("UPDATE products SET deleted = 1 WHERE id = ?", (product_id,))
+    with db.transaction():
+        db.execute("UPDATE products SET deleted = 1 WHERE id = %s", (product_id,))
 
 
 # Checked by the file's first bytes, not its name: anyone can rename virus.exe to photo.jpg

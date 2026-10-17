@@ -6,13 +6,15 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from . import admin, products, store
-from .database import UPLOAD_DIR, init_db
+from .database import UPLOAD_DIR, init_db, pool
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    init_db()  # create/upgrade tables and first-run data before serving requests
+    init_db()  # create tables and first-run data before serving requests
+    pool.open()
     yield
+    pool.close()
 
 
 app = FastAPI(title="UNDERGROUND API", lifespan=lifespan)

@@ -30,10 +30,10 @@ DUMMY_HASH = hash_password(secrets.token_hex(16))
 def new_session(db, username: str) -> str:
     token = secrets.token_urlsafe(32)
     expires_at = (datetime.now(UTC) + SESSION_LENGTH).isoformat()
-    with db:
-        db.execute("DELETE FROM sessions WHERE expires_at < ?", (now(),))
+    with db.transaction():
+        db.execute("DELETE FROM sessions WHERE expires_at < %s", (now(),))
         db.execute(
-            "INSERT INTO sessions (token, username, expires_at) VALUES (?, ?, ?)",
+            "INSERT INTO sessions (token, username, expires_at) VALUES (%s, %s, %s)",
             (token, username, expires_at),
         )
     return token

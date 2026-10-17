@@ -1,7 +1,7 @@
 """Public endpoints used by the storefront."""
 
 import secrets
-import sqlite3
+import psycopg
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -41,7 +41,7 @@ def order_error(status: int, message: str, **extra):
 
 
 @router.post("/orders", status_code=201)
-def place_order(order: OrderIn, db: sqlite3.Connection = Depends(get_db)):
+def place_order(order: OrderIn, db: psycopg.Connection = Depends(get_db)):
     c = order.customer.model_dump()
     field_errors = validate_customer(c)
     if field_errors:
@@ -53,7 +53,7 @@ def place_order(order: OrderIn, db: sqlite3.Connection = Depends(get_db)):
     # Prices and names come from the database, never from the browser
     lines = []
     for item in order.items:
-        product = db.execute("SELECT * FROM products WHERE id = ? AND deleted = 0", (item.id,)).fetchone()
+        product = db.execute("SELECT * FROM products WHERE id = %s AND deleted = 0", (item.id,)).fetchone()
         if not product:
             raise order_error(409, "An item in your cart is no longer available.", cartChanged=True)
         if item.quantity < 1:
@@ -78,15 +78,15 @@ def place_order(order: OrderIn, db: sqlite3.Connection = Depends(get_db)):
 
     # The order waits as "pending" until an admin confirms the sale.
     # Stock only goes down at that point.
-    with db:
+    with db.transaction():
         db.execute(
             """INSERT INTO orders (id, created_at, full_name, phone, email, wilaya, commune,
                                    address, notes, subtotal, delivery_fee, total)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
             (order_id, now(), *customer.values(), subtotal, DELIVERY_FEE, subtotal + DELIVERY_FEE),
         )
-        db.executemany(
-            "INSERT INTO order_items (order_id, product_id, name, price, quantity) VALUES (?, ?, ?, ?, ?)",
+        db.cursor().executemany(
+            "INSERT INTO order_items (order_id, product_id, name, price, quantity) VALUES (%s, %s, %s, %s, %s)",
             [(order_id, l["id"], l["name"], l["price"], l["quantity"]) for l in lines],
         )
 

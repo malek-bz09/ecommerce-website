@@ -1,6 +1,6 @@
 """Admin endpoints. Everything except /login needs a valid session token."""
 
-import sqlite3
+import psycopg
 from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, Header, HTTPException
@@ -16,13 +16,13 @@ def error(status: int, message: str):
     return HTTPException(status, detail={"message": message})
 
 
-def require_admin(authorization: str = Header(default=""), db: sqlite3.Connection = Depends(get_db)):
+def require_admin(authorization: str = Header(default=""), db: psycopg.Connection = Depends(get_db)):
     """Dependency: reads "Authorization: Bearer <token>" and returns the admin, or 401."""
     token = authorization.removeprefix("Bearer ").strip()
     admin = db.execute(
         """SELECT admins.username, admins.name FROM sessions
            JOIN admins ON admins.username = sessions.username
-           WHERE sessions.token = ? AND sessions.expires_at > ?""",
+           WHERE sessions.token = %s AND sessions.expires_at > %s""",
         (token, now()),
     ).fetchone()
     if not admin:
@@ -36,8 +36,8 @@ class LoginIn(BaseModel):
 
 
 @router.post("/login")
-def login(body: LoginIn, db: sqlite3.Connection = Depends(get_db)):
-    admin = db.execute("SELECT * FROM admins WHERE username = ?", (body.username.strip(),)).fetchone()
+def login(body: LoginIn, db: psycopg.Connection = Depends(get_db)):
+    admin = db.execute("SELECT * FROM admins WHERE username = %s", (body.username.strip(),)).fetchone()
     password_ok = verify_password(body.password, admin["password_hash"] if admin else DUMMY_HASH)
     if not admin or not password_ok:
         raise error(401, "Incorrect username or password.")
@@ -46,9 +46,9 @@ def login(body: LoginIn, db: sqlite3.Connection = Depends(get_db)):
 
 
 @router.post("/logout", status_code=204)
-def logout(admin=Depends(require_admin), db: sqlite3.Connection = Depends(get_db)):
-    with db:
-        db.execute("DELETE FROM sessions WHERE token = ?", (admin["token"],))
+def logout(admin=Depends(require_admin), db: psycopg.Connection = Depends(get_db)):
+    with db.transaction():
+        db.execute("DELETE FROM sessions WHERE token = %s", (admin["token"],))
 
 
 # What each status can change to. Anything else is refused.
@@ -75,12 +75,15 @@ def customer_json(o) -> dict:
 
 
 @router.get("/orders")
-def list_orders(_=Depends(require_admin), db: sqlite3.Connection = Depends(get_db)):
+def list_orders(_=Depends(require_admin), db: psycopg.Connection = Depends(get_db)):
     # Pending first (they need action), then newest first
     orders = db.execute(
         "SELECT * FROM orders ORDER BY status = 'pending' DESC, created_at DESC"
     ).fetchall()
-    counts = dict(db.execute("SELECT order_id, SUM(quantity) FROM order_items GROUP BY order_id").fetchall())
+    counts = {
+        r["order_id"]: r["count"]
+        for r in db.execute("SELECT order_id, SUM(quantity) AS count FROM order_items GROUP BY order_id")
+    }
     return [
         {
             "id": o["id"],
@@ -95,19 +98,19 @@ def list_orders(_=Depends(require_admin), db: sqlite3.Connection = Depends(get_d
 
 
 def find_order(db, order_id: str):
-    order = db.execute("SELECT * FROM orders WHERE id = ?", (order_id,)).fetchone()
+    order = db.execute("SELECT * FROM orders WHERE id = %s", (order_id,)).fetchone()
     if not order:
         raise error(404, "Order not found.")
     return order
 
 
 @router.get("/orders/{order_id}")
-def get_order(order_id: str, _=Depends(require_admin), db: sqlite3.Connection = Depends(get_db)):
+def get_order(order_id: str, _=Depends(require_admin), db: psycopg.Connection = Depends(get_db)):
     o = find_order(db, order_id)
     items = db.execute(
         """SELECT order_items.*, products.image, products.slug, products.deleted
            FROM order_items JOIN products ON products.id = order_items.product_id
-           WHERE order_id = ?""",
+           WHERE order_id = %s""",
         (order_id,),
     ).fetchall()
     return {
@@ -136,21 +139,21 @@ class StatusIn(BaseModel):
 
 
 @router.post("/orders/{order_id}/status")
-def change_status(order_id: str, body: StatusIn, _=Depends(require_admin), db: sqlite3.Connection = Depends(get_db)):
+def change_status(order_id: str, body: StatusIn, _=Depends(require_admin), db: psycopg.Connection = Depends(get_db)):
     order = find_order(db, order_id)
     old, new = order["status"], body.status
     if new not in TRANSITIONS[old]:
         raise error(409, f"A {old} order can't be marked {new}.")
-    items = db.execute("SELECT * FROM order_items WHERE order_id = ?", (order_id,)).fetchall()
+    items = db.execute("SELECT * FROM order_items WHERE order_id = %s", (order_id,)).fetchall()
 
     # "with db" is a transaction: if anything inside fails, every change is undone
-    with db:
+    with db.transaction():
         if new == "confirmed":
             for item in items:
                 # Only subtract when there is enough left, in one step, so two admins
                 # confirming at the same time can't sell the same last item twice
                 updated = db.execute(
-                    "UPDATE products SET stock = stock - ? WHERE id = ? AND stock >= ?",
+                    "UPDATE products SET stock = stock - %s WHERE id = %s AND stock >= %s",
                     (item["quantity"], item["product_id"], item["quantity"]),
                 )
                 if updated.rowcount == 0:
@@ -159,13 +162,13 @@ def change_status(order_id: str, body: StatusIn, _=Depends(require_admin), db: s
 
         # Stock was taken when the order was confirmed; put it back
         if old in ("confirmed", "delivered") and new in ("returned", "cancelled"):
-            db.executemany(
-                "UPDATE products SET stock = stock + ? WHERE id = ?",
+            db.cursor().executemany(
+                "UPDATE products SET stock = stock + %s WHERE id = %s",
                 [(item["quantity"], item["product_id"]) for item in items],
             )
 
         # new is one of our known statuses (checked above), so it's safe in the column name
-        db.execute(f"UPDATE orders SET status = ?, {new}_at = ? WHERE id = ?", (new, now(), order_id))
+        db.execute(f"UPDATE orders SET status = %s, {new}_at = %s WHERE id = %s", (new, now(), order_id))
     return get_order(order_id, None, db)
 
 
@@ -173,7 +176,7 @@ def add_customer(db, order) -> None:
     # One customer per phone number; their details are updated to the latest order
     db.execute(
         """INSERT INTO customers (full_name, phone, email, wilaya, commune, address, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?)
+           VALUES (%s, %s, %s, %s, %s, %s, %s)
            ON CONFLICT (phone) DO UPDATE SET
                full_name = excluded.full_name, email = excluded.email,
                wilaya = excluded.wilaya, commune = excluded.commune,
@@ -181,12 +184,12 @@ def add_customer(db, order) -> None:
         (order["full_name"], order["phone"], order["email"], order["wilaya"],
          order["commune"], order["address"], now()),
     )
-    customer_id = db.execute("SELECT id FROM customers WHERE phone = ?", (order["phone"],)).fetchone()["id"]
-    db.execute("UPDATE orders SET customer_id = ? WHERE id = ?", (customer_id, order["id"]))
+    customer_id = db.execute("SELECT id FROM customers WHERE phone = %s", (order["phone"],)).fetchone()["id"]
+    db.execute("UPDATE orders SET customer_id = %s WHERE id = %s", (customer_id, order["id"]))
 
 
 @router.get("/customers")
-def list_customers(_=Depends(require_admin), db: sqlite3.Connection = Depends(get_db)):
+def list_customers(_=Depends(require_admin), db: psycopg.Connection = Depends(get_db)):
     # Money counts only for orders that weren't returned or cancelled
     rows = db.execute(
         """SELECT customers.*, COUNT(orders.id) AS order_count,
@@ -214,33 +217,34 @@ CHART_DAYS = 14
 
 
 @router.get("/stats")
-def stats(_=Depends(require_admin), db: sqlite3.Connection = Depends(get_db)):
+def stats(_=Depends(require_admin), db: psycopg.Connection = Depends(get_db)):
     def one(sql):  # runs a query that returns a single number
-        return db.execute(sql).fetchone()[0]
+        return db.execute(sql).fetchone()["n"]
 
-    counts = dict.fromkeys(TRANSITIONS, 0) | dict(
-        db.execute("SELECT status, COUNT(*) FROM orders GROUP BY status").fetchall()
-    )
+    counts = dict.fromkeys(TRANSITIONS, 0) | {
+        r["status"]: r["count"] for r in db.execute("SELECT status, COUNT(*) AS count FROM orders GROUP BY status")
+    }
     finished = counts["delivered"] + counts["returned"]
 
     # Orders placed per day for the last 14 days, including days with none
     today = datetime.now(UTC).date()  # orders are stored in UTC
     days = [(today - timedelta(days=n)).isoformat() for n in range(CHART_DAYS - 1, -1, -1)]
-    placed = dict(
-        db.execute(
-            """SELECT substr(created_at, 1, 10) AS day, COUNT(*) FROM orders
-               WHERE substr(created_at, 1, 10) >= ? GROUP BY day""",
+    placed = {
+        r["day"]: r["count"]
+        for r in db.execute(
+            """SELECT substr(created_at, 1, 10) AS day, COUNT(*) AS count FROM orders
+               WHERE substr(created_at, 1, 10) >= %s GROUP BY day""",
             (days[0],),
-        ).fetchall()
-    )
+        )
+    }
 
     return {
         # Cash on delivery: money is in hand only once an order is delivered
-        "revenue": one("SELECT COALESCE(SUM(total), 0) FROM orders WHERE status = 'delivered'"),
-        "awaitingPayment": one("SELECT COALESCE(SUM(total), 0) FROM orders WHERE status = 'confirmed'"),
-        "averageOrder": one("SELECT COALESCE(ROUND(AVG(total)), 0) FROM orders WHERE status = 'delivered'"),
+        "revenue": one("SELECT COALESCE(SUM(total), 0) AS n FROM orders WHERE status = 'delivered'"),
+        "awaitingPayment": one("SELECT COALESCE(SUM(total), 0) AS n FROM orders WHERE status = 'confirmed'"),
+        "averageOrder": one("SELECT COALESCE(ROUND(AVG(total))::int, 0) AS n FROM orders WHERE status = 'delivered'"),
         "returnRate": counts["returned"] / finished if finished else None,
-        "customers": one("SELECT COUNT(*) FROM customers"),
+        "customers": one("SELECT COUNT(*) AS n FROM customers"),
         "statusCounts": counts,
         "ordersPerDay": [{"date": d, "orders": placed.get(d, 0)} for d in days],
         "topProducts": [
@@ -255,7 +259,7 @@ def stats(_=Depends(require_admin), db: sqlite3.Connection = Depends(get_db)):
         ],
         "lowStock": [
             dict(r) for r in db.execute(
-                "SELECT id, name, image, stock FROM products WHERE deleted = 0 AND stock <= ? ORDER BY stock",
+                "SELECT id, name, image, stock FROM products WHERE deleted = 0 AND stock <= %s ORDER BY stock",
                 (LOW_STOCK,),
             )
         ],

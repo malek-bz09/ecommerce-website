@@ -21,16 +21,15 @@ def main():
         sys.exit("Passwords don't match.")
 
     init_db()
-    db = connect()
-    with db:
+    with connect() as db, db.transaction():
         db.execute(
-            """INSERT INTO admins (username, name, password_hash) VALUES (?, ?, ?)
+            """INSERT INTO admins (username, name, password_hash) VALUES (%s, %s, %s)
                ON CONFLICT (username) DO UPDATE SET name = excluded.name,
                                                     password_hash = excluded.password_hash""",
             (username, name, hash_password(password)),
         )
         # Sign the account out everywhere so an old password stops working at once
-        db.execute("DELETE FROM sessions WHERE username = ?", (username,))
+        db.execute("DELETE FROM sessions WHERE username = %s", (username,))
     print(f"Saved admin account '{username}'.")
 
 

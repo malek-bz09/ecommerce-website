@@ -4,9 +4,11 @@ React + Vite (with React Compiler) storefront, with a Python FastAPI backend in 
 
 ## Run it
 
-Two terminals:
+Start PostgreSQL first (needs Docker), then two terminals:
 
 ```sh
+docker compose up -d   # PostgreSQL on localhost:5432 (user/password/db: shop)
+
 # 1. Backend (needs uv: https://docs.astral.sh/uv/) — http://localhost:8000
 pnpm api
 
@@ -55,5 +57,20 @@ The same command adds a new account when the username doesn't exist yet.
 
 ## Data
 
-Everything is stored in `backend/data/shop.db` (SQLite), created on first run.
-Delete that file to start over with the original stock.
+Everything is stored in PostgreSQL. The tables and first-run data are created when
+the backend starts. By default it connects to the database from `compose.yaml`;
+to use another one, set `DATABASE_URL`:
+
+```sh
+DATABASE_URL=postgresql://user:password@host:5432/shop pnpm api
+```
+
+To start over with the original stock: `docker compose down -v` (deletes the data),
+then `docker compose up -d`.
+
+Moving from the old SQLite version? Copy `backend/data/shop.db` into PostgreSQL once:
+
+```sh
+cd backend
+uv run python -m app.import_sqlite
+```
