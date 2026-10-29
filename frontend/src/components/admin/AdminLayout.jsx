@@ -57,7 +57,7 @@ function AdminLayout() {
           >
             Menu
           </button>
-          <span className="admin-user">{user.name}</span>
+          <span className="admin-user">{user.fullName}</span>
         </header>
 
         <div className="admin-content">

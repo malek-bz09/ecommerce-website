@@ -1,0 +1,11 @@
+{
+  "name": "underground",
+  "private": true,
+  "scripts": {
+    "api": "pnpm --dir frontend api",
+    "dev": "pnpm --dir frontend dev",
+    "build": "pnpm --dir frontend build",
+    "lint": "pnpm --dir frontend lint",
+    "install:frontend": "pnpm --dir frontend install"
+  }
+}

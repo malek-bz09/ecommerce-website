@@ -9,15 +9,15 @@ function OrderConfirmationPage() {
   // Reached directly (refresh, typed URL) without a just-placed order
   if (!order) return <Navigate to="/" replace />
 
-  const { id, customer, lines, subtotal, deliveryFee, total } = order
+  const { orderNumber, customer, lines, subtotal, deliveryFee, total } = order
 
   return (
     <section className="cart-page confirmation">
-      <p className="confirmation-eyebrow">Order {id}</p>
+      <p className="confirmation-eyebrow">Order {orderNumber}</p>
       <h1 className="cart-title">Thank you, {customer.fullName.split(' ')[0]}!</h1>
       <p className="confirmation-lead">
         Your order has been placed. We'll call you on <strong>{customer.phone}</strong> to confirm
-        it before shipping. A summary was sent to {customer.email}.
+        it before shipping. Keep your order number in case you need to contact us.
       </p>
 
       <div className="confirmation-grid">
@@ -36,12 +36,12 @@ function OrderConfirmationPage() {
         <div className="cart-summary">
           <h2>Cash on delivery</h2>
           <ul className="checkout-lines">
-            {lines.map((line) => (
-              <li key={line.id}>
+            {lines.map((line, index) => (
+              <li key={index}>
                 <span>
                   {line.name} × {line.quantity}
                 </span>
-                <span>{formatPrice(line.price * line.quantity)}</span>
+                <span>{formatPrice(line.subtotal)}</span>
               </li>
             ))}
           </ul>

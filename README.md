@@ -4,36 +4,51 @@ React + Vite (with React Compiler) storefront, with a Python FastAPI backend in 
 
 ## Run it
 
-Start PostgreSQL first (needs Docker), then two terminals:
+Needs Docker (for PostgreSQL), [uv](https://docs.astral.sh/uv/) and pnpm.
+
+First time only:
 
 ```sh
-docker compose up -d   # PostgreSQL on localhost:5432 (user/password/db: shop)
+docker compose up -d                 # PostgreSQL on localhost:5432 (user/password/db: shop)
+cd backend
+cp .env.example .env                 # then set JWT_SECRET_KEY (the file says how)
+uv run alembic upgrade head          # create the tables
+uv run python -m app.cli seed        # add the sample products
+uv run python -m app.cli create-admin --email you@shop.dz --name "Your Name"
+```
 
-# 1. Backend (needs uv: https://docs.astral.sh/uv/) — http://localhost:8000
-pnpm api
+Then, in two terminals from the project folder (or from `frontend/`):
 
-# 2. Frontend — http://localhost:5173
-pnpm install
-pnpm dev
+```sh
+pnpm api                                   # 1. Backend — http://localhost:8000
+pnpm install:frontend && pnpm dev          # 2. Frontend — http://localhost:5173
 ```
 
 Vite forwards every `/api/...` request to the backend, so both must be running.
 To point it at another backend: `API_URL=http://localhost:9000 pnpm dev`.
 API docs (try requests in the browser): http://localhost:8000/docs
 
+## Tests
+
+```sh
+cd backend
+uv run pytest            # needs PostgreSQL running; uses (and wipes) the shop_test database
+cd ../frontend
+pnpm lint && pnpm build
+```
+
 ## How a sale works
 
-Open an order in **Admin → Orders** to see its full details and move it along:
+Placing an order sets its items aside straight away, so two customers can never
+buy the same last item. Open an order in **Admin → Orders** to move it along:
 
 ```
-pending ──► confirmed ──► delivered
-   │            │             │
-   │            ├──► returned ◄┘   (items go back in stock)
-   ▼            ▼
-cancelled ◄─────┘                  (items go back in stock if it was confirmed)
+pending ─► confirmed ─► processing ─► shipped ─► delivered
+   │           │             │            │           │
+   └───────────┴─────────────┴─► cancelled └─► returned ◄┘
 ```
 
-- **Confirm sale** takes the items out of stock and adds the buyer to Customers.
+- **Cancelled** and **returned** orders put their items back in stock.
 - **Revenue** on the dashboard counts delivered orders only (cash on delivery).
 
 ## Products
@@ -44,33 +59,23 @@ changes show up straight away. Deleting hides a product but keeps it in old orde
 
 ## Admin accounts
 
-Sign in at **/admin**. There is no sign-up; accounts are created
-on the server. On first run two accounts exist: `admin` / `admin123` and
-`manager` / `manager123`. **Change those passwords** before going live:
+Sign in at **/admin** with your email. There is no sign-up and no default account;
+accounts are created on the server:
 
 ```sh
 cd backend
-uv run python -m app.create_admin admin "Store Admin"   # asks for the new password
+uv run python -m app.cli create-admin --email you@shop.dz --name "Your Name"              # admin
+uv run python -m app.cli create-admin --email helper@shop.dz --name "Helper" --role staff # orders only
 ```
 
-The same command adds a new account when the username doesn't exist yet.
+It asks for the password. Running it again for an existing email resets that
+account's name, role and password (and signs it out everywhere).
 
 ## Data
 
-Everything is stored in PostgreSQL. The tables and first-run data are created when
-the backend starts. By default it connects to the database from `compose.yaml`;
-to use another one, set `DATABASE_URL`:
+Everything is stored in PostgreSQL. The connection comes from `DATABASE_URL` in
+`backend/.env`. After pulling changes that touch `backend/alembic/versions/`, run
+`uv run alembic upgrade head` again.
 
-```sh
-DATABASE_URL=postgresql://user:password@host:5432/shop pnpm api
-```
-
-To start over with the original stock: `docker compose down -v` (deletes the data),
-then `docker compose up -d`.
-
-Moving from the old SQLite version? Copy `backend/data/shop.db` into PostgreSQL once:
-
-```sh
-cd backend
-uv run python -m app.import_sqlite
-```
+To start over: `docker compose down -v` (deletes the data), `docker compose up -d`,
+then repeat the first-time steps above.

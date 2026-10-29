@@ -26,7 +26,7 @@ function AdminOrderPage() {
     setBusy(true)
     setActionError(null)
     try {
-      await authFetch(`/admin/orders/${orderId}/status`, { method: 'POST', body: { status } })
+      await authFetch(`/admin/orders/${orderId}/status`, { method: 'PATCH', body: { status } })
       reload()
       catalog.reload() // stock may have changed, so refresh the shop's copy too
     } catch (err) {
@@ -49,7 +49,7 @@ function AdminOrderPage() {
 
       <header className="admin-page-header">
         <h1>
-          Order {order.id} <StatusBadge status={order.status} />
+          Order {order.orderNumber} <StatusBadge status={order.status} />
         </h1>
         <p>Placed {formatDate(history.pending)}</p>
       </header>
@@ -82,9 +82,9 @@ function AdminOrderPage() {
           <section className="admin-card">
             <h2>Items</h2>
             <ul className="order-lines">
-              {lines.map((line) => (
-                <li key={line.id}>
-                  <img src={line.image} alt="" />
+              {lines.map((line, index) => (
+                <li key={index}>
+                  {line.image ? <img src={line.image} alt="" /> : <span />}
                   <div>
                     {line.slug ? (
                       <Link to={`/product/${line.slug}`} className="admin-link">
@@ -97,7 +97,7 @@ function AdminOrderPage() {
                       {line.quantity} × {formatPrice(line.price)}
                     </small>
                   </div>
-                  <span>{formatPrice(line.price * line.quantity)}</span>
+                  <span>{formatPrice(line.subtotal)}</span>
                 </li>
               ))}
             </ul>
@@ -135,9 +135,11 @@ function AdminOrderPage() {
               <a href={`tel:${customer.phone}`} className="admin-link">
                 {customer.phone}
               </a>
-              <a href={`mailto:${customer.email}`} className="admin-link">
-                {customer.email}
-              </a>
+              {customer.email && (
+                <a href={`mailto:${customer.email}`} className="admin-link">
+                  {customer.email}
+                </a>
+              )}
             </p>
           </section>
 
@@ -155,7 +157,7 @@ function AdminOrderPage() {
             <ol className="order-history">
               {Object.keys(STATUSES)
                 .filter((status) => history[status])
-                .sort((a, b) => history[a].localeCompare(history[b]))
+                .sort((a, b) => new Date(history[a]) - new Date(history[b]))
                 .map((status) => (
                   <li key={status}>
                     <StatusBadge status={status} />

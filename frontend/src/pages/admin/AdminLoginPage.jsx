@@ -20,7 +20,7 @@ function AdminLoginPage() {
     setSubmitting(true)
     setError('')
     try {
-      await login(form.get('username'), form.get('password'))
+      await login(form.get('email'), form.get('password'))
       navigate(destination, { replace: true })
     } catch (err) {
       setError(err.message)
@@ -33,8 +33,8 @@ function AdminLoginPage() {
       <form className="admin-login-form" onSubmit={handleSubmit}>
         <h1>Admin sign in</h1>
 
-        <label htmlFor="admin-username">Username</label>
-        <input id="admin-username" name="username" autoComplete="username" required />
+        <label htmlFor="admin-email">Email</label>
+        <input id="admin-email" name="email" type="email" autoComplete="username" required />
 
         <label htmlFor="admin-password">Password</label>
         <input

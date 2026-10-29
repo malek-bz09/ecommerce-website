@@ -6,26 +6,36 @@ import StatusBadge from './StatusBadge'
 import { useAdminData } from './useAdminData'
 import './AdminPages.css'
 
+const PAGE_SIZE = 50
+
 function AdminOrdersPage() {
-  const { data: orders, error, loading } = useAdminData('/admin/orders')
   const navigate = useNavigate()
-  // The filter lives in the URL (?status=pending) so the dashboard can link to it
+  // The filter and page live in the URL (?status=pending&page=2) so the dashboard can link to them
   const [searchParams] = useSearchParams()
   const filter = searchParams.get('status') ?? 'all'
+  const page = Math.max(Number(searchParams.get('page')) || 1, 1)
 
-  const countOf = (status) => orders?.filter((o) => o.status === status).length ?? 0
-  const shown = filter === 'all' ? orders : orders?.filter((o) => o.status === filter)
+  const query = new URLSearchParams({ page, size: PAGE_SIZE })
+  if (filter !== 'all') query.set('status', filter)
+  const { data, error, loading } = useAdminData(`/admin/orders?${query}`)
+
+  // The server filters, and counts every status for the tabs
+  const shown = data?.items
+  const counts = data?.statusCounts
+  const countOf = (status) => counts?.[status] ?? 0
+  const allCount = counts ? Object.values(counts).reduce((sum, n) => sum + n, 0) : ''
+  const pageLink = (n) => `/admin/orders?${new URLSearchParams({ ...(filter !== 'all' && { status: filter }), page: n })}`
 
   return (
     <section>
       <header className="admin-page-header">
         <h1>Orders</h1>
-        {orders && <p>{countOf('pending')} waiting for confirmation</p>}
+        {counts && <p>{countOf('pending')} waiting for confirmation</p>}
       </header>
 
       <nav className="admin-tabs" aria-label="Filter orders by status">
         <Link to="/admin/orders" className={filter === 'all' ? 'is-active' : undefined}>
-          All<span>{orders?.length ?? ''}</span>
+          All<span>{allCount}</span>
         </Link>
         {Object.entries(STATUSES).map(([status, { label }]) => (
           <Link
@@ -34,7 +44,7 @@ function AdminOrdersPage() {
             className={filter === status ? 'is-active' : undefined}
           >
             {label}
-            <span>{orders ? countOf(status) : ''}</span>
+            <span>{counts ? countOf(status) : ''}</span>
           </Link>
         ))}
       </nav>
@@ -70,7 +80,7 @@ function AdminOrdersPage() {
                       className="admin-row-link"
                       onClick={(event) => event.stopPropagation()} // the row navigates already
                     >
-                      {order.id}
+                      {order.orderNumber}
                     </Link>
                     <small>{formatDate(order.createdAt)}</small>
                   </td>
@@ -92,6 +102,16 @@ function AdminOrdersPage() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {data?.pages > 1 && (
+        <nav className="admin-pager" aria-label="Pages">
+          {page > 1 && <Link to={pageLink(page - 1)}>← Newer</Link>}
+          <span>
+            Page {page} of {data.pages}
+          </span>
+          {page < data.pages && <Link to={pageLink(page + 1)}>Older →</Link>}
+        </nav>
       )}
     </section>
   )

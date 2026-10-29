@@ -9,7 +9,8 @@ import './AdminPages.css'
 
 const LOW_STOCK = 3
 
-function stockStatus(stock) {
+function stockStatus({ stock, isAvailable }) {
+  if (!isAvailable) return { label: 'Hidden', tone: 'muted' }
   if (stock === 0) return { label: 'Sold out', tone: 'bad' }
   if (stock <= LOW_STOCK) return { label: 'Low stock', tone: 'warn' }
   return { label: 'In stock', tone: 'ok' }
@@ -18,7 +19,7 @@ function stockStatus(stock) {
 function AdminProductsPage() {
   const { authFetch } = useAuth()
   const catalog = useProducts()
-  const { data: products, error, loading, reload } = useAdminData('/admin/products')
+  const { data: products, error, loading, reload } = useAdminData('/admin/products', { allPages: true })
   const [deletingId, setDeletingId] = useState(null)
   const [actionError, setActionError] = useState(null)
 
@@ -27,7 +28,7 @@ function AdminProductsPage() {
     setDeletingId(product.id)
     setActionError(null)
     try {
-      await authFetch(`/admin/products/${product.id}`, { method: 'DELETE' })
+      await authFetch(`/products/${product.id}`, { method: 'DELETE' })
       reload()
       catalog.reload()
     } catch (err) {
@@ -81,7 +82,7 @@ function AdminProductsPage() {
             </thead>
             <tbody>
               {products.map((product) => {
-                const status = stockStatus(product.stock)
+                const status = stockStatus(product)
                 return (
                   <tr key={product.id}>
                     <td>

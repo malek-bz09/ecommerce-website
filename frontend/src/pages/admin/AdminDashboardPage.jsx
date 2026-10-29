@@ -21,7 +21,7 @@ function AdminDashboardPage() {
   return (
     <section className="dashboard">
       <header className="admin-page-header">
-        <h1>Welcome back, {user.name}</h1>
+        <h1>Welcome back, {user.fullName}</h1>
         <p>Here's how the shop is doing</p>
       </header>
 
@@ -91,7 +91,7 @@ function AdminDashboardPage() {
                 <li key={order.id} className="dashboard-order">
                   <span className="dashboard-list-main">
                     <Link to={`/admin/orders/${order.id}`} className="admin-link">
-                      {order.id}
+                      {order.orderNumber}
                     </Link>
                     <small>
                       {order.fullName} · {formatDate(order.createdAt)}

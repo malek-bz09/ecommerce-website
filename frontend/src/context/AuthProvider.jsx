@@ -32,18 +32,20 @@ function AuthProvider({ children }) {
     setSession(null)
   }, [])
 
-  // The server checks the username and password; throws ApiError when they're wrong
-  const login = async (username, password) => {
-    const next = await apiFetch('/admin/login', { method: 'POST', body: { username, password } })
+  // The server checks the email and password; throws ApiError when they're wrong
+  const login = async (email, password) => {
+    const { accessToken, user } = await apiFetch('/auth/login', {
+      method: 'POST',
+      body: { email, password },
+    })
+    const next = { token: accessToken, user }
     saveSession(next)
     setSession(next)
   }
 
-  const logout = async () => {
-    clearSession()
-    // Also end the session on the server; nothing to do if that fails
-    await apiFetch('/admin/logout', { method: 'POST', token }).catch(() => {})
-  }
+  // Login tokens can't be switched off on the server, so signing out means forgetting
+  // ours; it stops working by itself after the server's time limit anyway
+  const logout = clearSession
 
   // fetch for admin pages: adds the token, and signs out when the server rejects it.
   // useCallback keeps the same function between renders so pages can use it in useEffect.

@@ -4,19 +4,19 @@ import { useAdminData } from './useAdminData'
 import './AdminPages.css'
 
 function AdminCustomersPage() {
-  const { data: customers, error, loading } = useAdminData('/admin/customers')
+  const { data: customers, error, loading } = useAdminData('/admin/customers', { allPages: true })
 
   return (
     <section>
       <header className="admin-page-header">
         <h1>Customers</h1>
-        {customers && <p>Buyers appear here once you confirm their sale</p>}
+        {customers && <p>Everyone who has placed an order, one row per phone number</p>}
       </header>
 
       {loading && <p className="admin-message">Loading customers…</p>}
       {error && <p className="admin-alert">{error}</p>}
       {customers?.length === 0 && (
-        <p className="admin-message">No customers yet. Confirm an order to add its buyer.</p>
+        <p className="admin-message">No customers yet. Buyers appear here once they place an order.</p>
       )}
 
       {customers?.length > 0 && (

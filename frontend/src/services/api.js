@@ -9,16 +9,19 @@ export class ApiError extends Error {
   }
 }
 
-export async function apiFetch(path, { method = 'GET', body, token } = {}) {
+// Every backend route lives under /api/v1 (see backend/app/main.py)
+const API_PREFIX = '/api/v1'
+
+export async function apiFetch(path, { method = 'GET', body, token, headers: extraHeaders } = {}) {
   // FormData (file uploads) is sent as-is; the browser sets its Content-Type
   const isForm = body instanceof FormData
-  const headers = {}
+  const headers = { ...extraHeaders }
   if (body !== undefined && !isForm) headers['Content-Type'] = 'application/json'
   if (token) headers.Authorization = `Bearer ${token}`
 
   let response
   try {
-    response = await fetch(`/api${path}`, {
+    response = await fetch(`${API_PREFIX}${path}`, {
       method,
       headers,
       body: body === undefined || isForm ? body : JSON.stringify(body),
@@ -36,4 +39,16 @@ export async function apiFetch(path, { method = 'GET', body, token } = {}) {
     throw new ApiError(response.status, message, detail)
   }
   return data
+}
+
+// The backend returns long lists one page at a time ({items, pages, ...}).
+// This fetches every page and returns all the items in one array.
+export async function fetchAllPages(fetcher, path) {
+  const separator = path.includes('?') ? '&' : '?'
+  const items = []
+  for (let page = 1; ; page++) {
+    const data = await fetcher(`${path}${separator}page=${page}&size=100`)
+    items.push(...data.items)
+    if (page >= data.pages) return items
+  }
 }

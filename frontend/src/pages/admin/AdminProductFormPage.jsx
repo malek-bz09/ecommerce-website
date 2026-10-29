@@ -14,7 +14,7 @@ const EMPTY = {
   price: '',
   compareAtPrice: '',
   stock: '',
-  image: '',
+  imageUrl: '',
 }
 
 // /admin/products/new → empty form; /admin/products/12 → load product 12, then the form
@@ -37,7 +37,7 @@ function EditProduct({ productId }) {
     price: String(product.price),
     compareAtPrice: product.compareAtPrice === null ? '' : String(product.compareAtPrice),
     stock: String(product.stock),
-    image: product.images[0],
+    imageUrl: product.imageUrl,
   }
   return <ProductForm productId={productId} initial={initial} />
 }
@@ -69,12 +69,12 @@ function ProductForm({ productId, initial }) {
     const body = new FormData()
     body.append('file', file)
     setUploading(true)
-    setErrors((e) => ({ ...e, image: null }))
+    setErrors((e) => ({ ...e, imageUrl: null }))
     try {
       const { url } = await authFetch('/admin/uploads', { method: 'POST', body })
-      setValues((v) => ({ ...v, image: url }))
+      setValues((v) => ({ ...v, imageUrl: url }))
     } catch (err) {
-      setErrors((e) => ({ ...e, image: err.message }))
+      setErrors((e) => ({ ...e, imageUrl: err.message }))
     } finally {
       setUploading(false)
       event.target.value = '' // lets you pick the same file again
@@ -86,8 +86,8 @@ function ProductForm({ productId, initial }) {
     setSaving(true)
     setFormError(null)
     try {
-      await authFetch(isNew ? '/admin/products' : `/admin/products/${productId}`, {
-        method: isNew ? 'POST' : 'PUT',
+      await authFetch(isNew ? '/products' : `/products/${productId}`, {
+        method: isNew ? 'POST' : 'PATCH',
         body: {
           ...values,
           price: toNumber(values.price),
@@ -136,7 +136,7 @@ function ProductForm({ productId, initial }) {
           </Field>
 
           <Field label="Description" name="description" error={errors.description}>
-            <textarea rows={4} maxLength={1000} {...field('description')} />
+            <textarea rows={4} maxLength={2000} {...field('description')} />
           </Field>
 
           <Field label="Category" name="category" error={errors.category}>
@@ -170,13 +170,13 @@ function ProductForm({ productId, initial }) {
 
         <div className="admin-card product-form-image">
           <h2>Photo</h2>
-          {values.image ? (
-            <img src={values.image} alt="Product preview" />
+          {values.imageUrl ? (
+            <img src={values.imageUrl} alt="Product preview" />
           ) : (
             <div className="product-form-image-empty">No photo yet</div>
           )}
           <label className="admin-button admin-button--secondary product-form-upload">
-            {uploading ? 'Uploading…' : values.image ? 'Change photo' : 'Upload photo'}
+            {uploading ? 'Uploading…' : values.imageUrl ? 'Change photo' : 'Upload photo'}
             <input
               type="file"
               accept="image/jpeg,image/png,image/webp"
@@ -185,7 +185,7 @@ function ProductForm({ productId, initial }) {
             />
           </label>
           <p className="product-form-hint">JPG, PNG or WebP, up to 5 MB. Portrait (4:5) looks best.</p>
-          {errors.image && <p className="product-form-error">{errors.image}</p>}
+          {errors.imageUrl && <p className="product-form-error">{errors.imageUrl}</p>}
         </div>
 
         <div className="product-form-actions">

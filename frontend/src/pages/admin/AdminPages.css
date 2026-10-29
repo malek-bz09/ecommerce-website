@@ -264,3 +264,12 @@ a.admin-button {
   text-transform: uppercase;
   color: var(--gray);
 }
+
+/* Previous / next page links under a long table */
+.admin-pager {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1rem;
+}

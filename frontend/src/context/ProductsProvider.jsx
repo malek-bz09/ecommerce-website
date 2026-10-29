@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { ProductsContext } from './products'
-import { apiFetch } from '../services/api'
+import { apiFetch, fetchAllPages } from '../services/api'
 
 // Loads the catalogue from the backend once, and shares it with every page
 function ProductsProvider({ children }) {
@@ -9,7 +9,7 @@ function ProductsProvider({ children }) {
 
   useEffect(() => {
     let ignore = false
-    apiFetch('/products').then(
+    fetchAllPages(apiFetch, '/products').then(
       (products) => !ignore && setState({ products, loading: false, error: null }),
       (error) => !ignore && setState((s) => ({ ...s, loading: false, error: error.message })),
     )

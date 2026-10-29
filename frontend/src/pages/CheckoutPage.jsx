@@ -22,6 +22,8 @@ function CheckoutPage() {
   const [touched, setTouched] = useState({})
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState(null)
+  // One id per visit to this page, sent with every attempt to place this order
+  const [idempotencyKey] = useState(() => crypto.randomUUID())
 
   // Items that can't be ordered as they are (sold out or over the stock limit)
   const stockIssues = lines.filter(({ quantity, product }) => quantity > product.stock)
@@ -83,6 +85,7 @@ function CheckoutPage() {
       const order = await placeOrder({
         customer: values,
         items: lines.map(({ id, quantity }) => ({ id, quantity })),
+        idempotencyKey,
       })
       navigate('/order-confirmed', { replace: true, state: { order } })
       clearCart()
